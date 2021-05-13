@@ -1,0 +1,102 @@
+---
+title: "Climate model_demo"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r loadpackages}
+library(lubridate)
+library(ggplot2)
+library(tidyverse)
+library(chron)
+library(ncdf4)
+library(RColorBrewer)
+library(lattice)
+```
+
+### Reading in the data
+
+```{r helpfulfunctions_data}
+create_nc_ensemble_dataarray <- function(nc_string_in, var_name){
+  ncin <- nc_open(nc_string_in)
+  
+  lon <- ncvar_get(ncin,"lon")
+  lat <- ncvar_get(ncin,"lat")
+  
+  lats=which(lat >= 37 & lat <= 42)
+  lons=which(lon >= 235 & lon <= 240)
+  
+  var_data_array <- ncvar_get(ncin, 
+                              var_name, 
+                              start=c(min(lons), min(lats), 1), 
+                              count=c(length(lons), length(lats), -1)
+                              )
+  return(var_data_array)
+}
+
+get_ensemble_rtime <- function(nc_string_in){
+  ncin <- nc_open(nc_string_in)
+  
+  time <- ncvar_get(ncin,"time")
+  tunits <- ncatt_get(ncin,"time","units")
+  
+  tustr <- strsplit(tunits$value, " ")
+  tdstr <- strsplit(unlist(tustr)[3], "-")
+  tmonth <- as.integer(unlist(tdstr)[2])
+  tday <- as.integer(unlist(tdstr)[3])
+  tyear <- as.integer(unlist(tdstr)[1])
+  rtime <- chron(time,origin=c(tmonth, tday, tyear))
+  return(rtime)
+}
+
+```
+```{r mintempdata}
+# This chunk creates three arrays of monthly average rural daily minimum temperature (degrees C)
+filename1 <- "b.e11.BRCP85C5CNBDRD.f09_g16.001.clm2.h0.TREFMNAV_R.200601-208012.nc"
+filename2 <- "b.e11.BRCP85C5CNBDRD.f09_g16.002.clm2.h0.TREFMNAV_R.200601-208012.nc"
+filename3 <- "b.e11.BRCP85C5CNBDRD.f09_g16.003.clm2.h0.TREFMNAV_R.200601-208012.nc"
+dname <- "TREFMNAV_R"
+
+monavg_mindailyT_ens1 <- create_nc_ensemble_dataarray(nc_string_in = filename1, 
+                                                      var_name = dname) - 273.15
+
+monavg_mindailyT_ens2 <- create_nc_ensemble_dataarray(nc_string_in = filename2, 
+                                                      var_name = dname) - 273.15
+
+monavg_mindailyT_ens3 <- create_nc_ensemble_dataarray(nc_string_in = filename3, 
+                                                      var_name = dname) - 273.15
+```
+```{r rainfalldata}
+# This chunk creates three arrays of monthly average rainfall (mm/s)
+filename1 <- "b.e11.BRCP85C5CNBDRD.f09_g16.005.clm2.h0.RAIN.200601-208012.nc"
+filename2 <- "b.e11.BRCP85C5CNBDRD.f09_g16.006.clm2.h0.RAIN.200601-208012.nc"
+filename3 <- "b.e11.BRCP85C5CNBDRD.f09_g16.007.clm2.h0.RAIN.200601-208012.nc"
+dname <- "RAIN"
+
+monavg_meanrain_ens1 <- create_nc_ensemble_dataarray(nc_string_in = filename1, 
+                                                      var_name = dname) 
+
+monavg_meanrain_ens2 <- create_nc_ensemble_dataarray(nc_string_in = filename2, 
+                                                      var_name = dname) 
+
+monavg_meanrain_ens3 <- create_nc_ensemble_dataarray(nc_string_in = filename3, 
+                                                      var_name = dname) 
+```
+```{r timevector}
+# Generating a vector of dates that are index-matched to the time dimension (length 900) in the climate data arrays
+# This was necessary because there are issues with just retrieving the time dimension like Sam did in her example code (I think there are errors in her code that she missed)
+time1 <-get_ensemble_rtime(filename3)
+timeseq <- seq(time1[1]-31, to = time1[length(time1)], by = 'month')
+length(timeseq)
+```
+
+### Set up empirical model
+
+
+
+
+
