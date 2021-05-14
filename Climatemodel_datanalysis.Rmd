@@ -54,11 +54,12 @@ get_ensemble_rtime <- function(nc_string_in){
 }
 
 ```
+
 ```{r mintempdata}
 # This chunk creates three arrays of monthly average rural daily minimum temperature (degrees C)
-filename1 <- "b.e11.BRCP85C5CNBDRD.f09_g16.001.clm2.h0.TREFMNAV_R.200601-208012.nc"
-filename2 <- "b.e11.BRCP85C5CNBDRD.f09_g16.002.clm2.h0.TREFMNAV_R.200601-208012.nc"
-filename3 <- "b.e11.BRCP85C5CNBDRD.f09_g16.003.clm2.h0.TREFMNAV_R.200601-208012.nc"
+filename1 <- "climdata/b.e11.BRCP85C5CNBDRD.f09_g16.001.clm2.h0.TREFMNAV_R.200601-208012.nc"
+filename2 <- "climdata/b.e11.BRCP85C5CNBDRD.f09_g16.002.clm2.h0.TREFMNAV_R.200601-208012.nc"
+filename3 <- "climdata/b.e11.BRCP85C5CNBDRD.f09_g16.003.clm2.h0.TREFMNAV_R.200601-208012.nc"
 dname <- "TREFMNAV_R"
 
 monavg_mindailyT_ens1 <- create_nc_ensemble_dataarray(nc_string_in = filename1, 
@@ -72,9 +73,9 @@ monavg_mindailyT_ens3 <- create_nc_ensemble_dataarray(nc_string_in = filename3,
 ```
 ```{r rainfalldata}
 # This chunk creates three arrays of monthly average rainfall (mm/s)
-filename1 <- "b.e11.BRCP85C5CNBDRD.f09_g16.005.clm2.h0.RAIN.200601-208012.nc"
-filename2 <- "b.e11.BRCP85C5CNBDRD.f09_g16.006.clm2.h0.RAIN.200601-208012.nc"
-filename3 <- "b.e11.BRCP85C5CNBDRD.f09_g16.007.clm2.h0.RAIN.200601-208012.nc"
+filename1 <- "climdata/b.e11.BRCP85C5CNBDRD.f09_g16.005.clm2.h0.RAIN.200601-208012.nc"
+filename2 <- "climdata/b.e11.BRCP85C5CNBDRD.f09_g16.006.clm2.h0.RAIN.200601-208012.nc"
+filename3 <- "climdata/b.e11.BRCP85C5CNBDRD.f09_g16.007.clm2.h0.RAIN.200601-208012.nc"
 dname <- "RAIN"
 
 monavg_meanrain_ens1 <- create_nc_ensemble_dataarray(nc_string_in = filename1, 
@@ -96,6 +97,24 @@ length(timeseq)
 
 ### Set up empirical model
 
+```{r}
+# A function to calculate yield anomaly (tons/acre deviation from historical average yield) for WINE grapes
+# Numeric inputs are average minimum daily temperature (C) in March for the year in question, total precipitation (mm) in June for the year in question, and total precipitation in September in the previous year
+# Equation based on Lobell et al 2006
+wine_anomaly <- function(mar_minT, jun_prcp, prevSept_prcp){
+  yanom <- 2.65*mar_minT - 0.17*(mar_minT^2) + 4.78*jun_prcp - 4.93*(jun_prcp^2) - 2.24*prevSept_prcp + 1.54*(prevSept_prcp^2) - 10.5
+  return(yanom)
+}
+
+
+# A function to calculate yield anomaly (tons/acre deviation from historical average yield) for TABLE grapes
+# Numeric inputs are average minimum daily temperature (C) in July for the year in question, average minimum daily temperature (C) in March for the year in question, total precipitation (mm) in January for the year in question, and total precipitation in October in the previous year
+# Equation based on Lobell et al 2006
+table_anomaly <- function(jul_minT, mar_minT, jan_prcp, prevOct_prcp){
+  yanom <- 6.93*jul_minT - 0.19*jul_minT^2 + 2.61*mar_minT - 0.15*mar_minT^2 + 0.035*jan_prcp + 0.024*jan_prcp^2 + 1.71*prevOct_prcp - 0.673*prevOct_prcp - 73.89
+  return(yanom)
+}
+```
 
 
 
