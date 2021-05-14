@@ -145,12 +145,28 @@ wine_anomaly <- function(apr_minT, jun_prcp, prevSept_prcp){
   return(yanom)
 }
 
+wine_yield <- function(apr_minT, jun_prcp, prevSept_prcp){
+  yanom <- 2.65*apr_minT - 0.17*(apr_minT^2) + 4.78*jun_prcp - 4.93*(jun_prcp^2) - 2.24*prevSept_prcp + 1.54*(prevSept_prcp^2) - 10.5
+  hist_mean <- 7
+  yield <- yanom + hist_mean
+  if (yield < 0) {yield = 0}
+  return(yield)
+}
+
 # A function to calculate yield anomaly (tons/acre deviation from historical average yield) for TABLE grapes
 # Numeric inputs are average minimum daily temperature (C) in July for the year in question, average minimum daily temperature (C) in April for the year in question, total precipitation (mm) in January for the year in question, and total precipitation (mm) in October in the previous year
 # Equation based on Lobell et al 2006
 table_anomaly <- function(jul_minT, apr_minT, jan_prcp, prevOct_prcp){
   yanom <- 6.93*jul_minT - 0.19*jul_minT^2 + 2.61*apr_minT - 0.15*apr_minT^2 + 0.035*jan_prcp + 0.024*jan_prcp^2 + 1.71*prevOct_prcp - 0.673*prevOct_prcp - 73.89
   return(yanom)
+}
+
+table_yield <- function(jul_minT, apr_minT, jan_prcp, prevOct_prcp){
+  yanom <- 6.93*jul_minT - 0.19*jul_minT^2 + 2.61*apr_minT - 0.15*apr_minT^2 + 0.035*jan_prcp + 0.024*jan_prcp^2 + 1.71*prevOct_prcp - 0.673*prevOct_prcp - 73.89
+  hist_mean <- 12
+  yield <- yanom + hist_mean
+  if (yield < 0) {yield = 0}
+  return(yield)
 }
 ```
 
@@ -173,6 +189,23 @@ for (i in 1:74) {
   }
 }
 
+as_tibble(wine_array)
+
+wine_avg <- c()
+table_avg <- c()
+
+for (i in 1:74) {
+  wine_avg[i] = mean(wine_array[,,i], na.rm = TRUE)
+  table_avg[i] = mean(table_array[,,i], na.rm = TRUE)
+}
+
+wine_scaled <- c()
+table_scaled <- c()
+
+for (i in 1:74) {
+  wine_scaled[i] = wine_avg[i]/min(wine_avg)
+  table_scaled[i] = table_avg[i]/max(table_avg)
+}
 
 ```
 
