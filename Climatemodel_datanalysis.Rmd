@@ -156,7 +156,22 @@ table_anomaly <- function(jul_minT, apr_minT, jan_prcp, prevOct_prcp){
 
 ### Implement the model
 ```{r}
+wine_array <- array(0, c(5,6,74))
+table_array <- array(0, c(5,6,74))
 
+for (i in 1:74) {
+  for (j in 1:5) {
+    for (k in 1:6) {
+      wine_array[j,k,i] = wine_anomaly(apr_minT = apr_minT[j,k,i],
+                                       jun_prcp = jun_prcp[j,k,i],
+                                       prevSept_prcp = prevsep_prcp[j,k,i])
+      table_array[j,k,i] = table_anomaly(jul_minT = jul_minT[j,k,i],
+                                       apr_minT = apr_minT[j,k,i],
+                                       jan_prcp = jan_prcp[j,k,i],
+                                       prevOct_prcp = prevoct_prcp[j,k,i])
+    }
+  }
+}
 
 
 ```
