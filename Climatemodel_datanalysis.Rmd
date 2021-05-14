@@ -7,7 +7,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r loadpackages}
 library(lubridate)
 library(ggplot2)
@@ -18,8 +17,7 @@ library(RColorBrewer)
 library(lattice)
 ```
 
-### Reading in the data
-
+## Reading in the data
 ```{r helpfulfunctions_data}
 create_nc_ensemble_dataarray <- function(nc_string_in, var_name){
   ncin <- nc_open(nc_string_in)
@@ -54,7 +52,6 @@ get_ensemble_rtime <- function(nc_string_in){
 }
 
 ```
-
 ```{r mintempdata}
 # This chunk creates three arrays of monthly average rural daily minimum temperature (degrees C)
 filename1 <- "climdata/b.e11.BRCP85C5CNBDRD.f09_g16.001.clm2.h0.TREFMNAV_R.200601-208012.nc"
@@ -87,35 +84,81 @@ monavg_meanrain_ens2 <- create_nc_ensemble_dataarray(nc_string_in = filename2,
 monavg_meanrain_ens3 <- create_nc_ensemble_dataarray(nc_string_in = filename3, 
                                                       var_name = dname) 
 ```
+
+## Manipulating data for workability
+```{r}
+# Composite array of monthly average rural daily minimum temp (degrees C)
+minT_composite <- (monavg_mindailyT_ens1 + monavg_mindailyT_ens2 + monavg_mindailyT_ens3)/3
+
+# Composite array of monthly average rainfall (mm/s)
+rainfall_composite <- (monavg_meanrain_ens1 + monavg_meanrain_ens2 + monavg_meanrain_ens3)/3
+```
+
+
 ```{r timevector}
 # Generating a vector of dates that are index-matched to the time dimension (length 900) in the climate data arrays
 # This was necessary because there are issues with just retrieving the time dimension like Sam did in her example code (I think there are errors in her code that she missed)
 time1 <-get_ensemble_rtime(filename3)
 timeseq <- seq(time1[1]-31, to = time1[length(time1)], by = 'month')
-length(timeseq)
+length(timeseq) # Must be the same length as the time dimension in the composite arrays (900)!
+
+monseq <- month(timeseq)
+
+Jan_indxs <- which(monseq == 1)
+Apr_indxs <- which(monseq == 4)
+Jun_indxs <- which(monseq == 6)
+Jul_indxs <- which(monseq == 7)
+Sep_indxs <- which(monseq == 9)
+Oct_indxs <- which(monseq == 10)
+
+jan_ids <- Jan_indxs[2:length(Jan_indxs)] # Time dimension month indices for January 2007-2080
+apr_ids <- Apr_indxs[2:length(Apr_indxs)] # Time dimension month indices for April 2007-2080
+jun_ids <- Jun_indxs[2:length(Jun_indxs)] # Time dimension month indices for June 2007-2080
+jul_ids <- Jul_indxs[2:length(Jul_indxs)] # Time dimension month indices for July 2007-2080
+prev_sep_ids <- Sep_indxs[1:(length(Sep_indxs)-1)] # Time dimension month indices for September 2006-2079
+prev_oct_ids <- Oct_indxs[1:(length(Oct_indxs)-1)] # Time dimension month indices for October 2006-2079
+
+# Total seconds in a 31-day month (Jan, Oct): 2678400
+# Total seconds in a 30-day month (Jun, Sep): 2592000
 ```
 
-### Set up empirical model
+```{r createarrays}
+apr_minT <- minT_composite[,,apr_ids] # Array of gridded mean minimum daily temp (C) in April
+jul_minT <- minT_composite[,,jul_ids] # Array of gridded mean minimum daily temp (C) in July
+
+jan_prcp <- rainfall_composite[,,jan_ids]*2678400 # Array of gridded total precip (mm) in January
+jun_prcp <- rainfall_composite[,,jun_ids]*2592000 # Array of gridded total precip (mm) in June
+
+prevsep_prcp <- rainfall_composite[,,prev_sep_ids]*2592000 # Array of gridded total precip (mm) in previous September
+prevoct_prcp <- rainfall_composite[,,prev_oct_ids]*2678400 # Array of gridded total precip (mm) in previous October
+```
+
+
+### Define empirical model equations
 
 ```{r}
 # A function to calculate yield anomaly (tons/acre deviation from historical average yield) for WINE grapes
-# Numeric inputs are average minimum daily temperature (C) in March for the year in question, total precipitation (mm) in June for the year in question, and total precipitation in September in the previous year
+# Numeric inputs are average minimum daily temperature (C) in April for the year in question, total precipitation (mm) in June for the year in question, and total precipitation in September in the previous year
 # Equation based on Lobell et al 2006
-wine_anomaly <- function(mar_minT, jun_prcp, prevSept_prcp){
-  yanom <- 2.65*mar_minT - 0.17*(mar_minT^2) + 4.78*jun_prcp - 4.93*(jun_prcp^2) - 2.24*prevSept_prcp + 1.54*(prevSept_prcp^2) - 10.5
+wine_anomaly <- function(apr_minT, jun_prcp, prevSept_prcp){
+  yanom <- 2.65*apr_minT - 0.17*(apr_minT^2) + 4.78*jun_prcp - 4.93*(jun_prcp^2) - 2.24*prevSept_prcp + 1.54*(prevSept_prcp^2) - 10.5
   return(yanom)
 }
 
-
 # A function to calculate yield anomaly (tons/acre deviation from historical average yield) for TABLE grapes
-# Numeric inputs are average minimum daily temperature (C) in July for the year in question, average minimum daily temperature (C) in March for the year in question, total precipitation (mm) in January for the year in question, and total precipitation in October in the previous year
+# Numeric inputs are average minimum daily temperature (C) in July for the year in question, average minimum daily temperature (C) in April for the year in question, total precipitation (mm) in January for the year in question, and total precipitation (mm) in October in the previous year
 # Equation based on Lobell et al 2006
-table_anomaly <- function(jul_minT, mar_minT, jan_prcp, prevOct_prcp){
-  yanom <- 6.93*jul_minT - 0.19*jul_minT^2 + 2.61*mar_minT - 0.15*mar_minT^2 + 0.035*jan_prcp + 0.024*jan_prcp^2 + 1.71*prevOct_prcp - 0.673*prevOct_prcp - 73.89
+table_anomaly <- function(jul_minT, apr_minT, jan_prcp, prevOct_prcp){
+  yanom <- 6.93*jul_minT - 0.19*jul_minT^2 + 2.61*apr_minT - 0.15*apr_minT^2 + 0.035*jan_prcp + 0.024*jan_prcp^2 + 1.71*prevOct_prcp - 0.673*prevOct_prcp - 73.89
   return(yanom)
 }
 ```
 
+### Implement the model
+```{r}
 
+
+
+```
 
 
