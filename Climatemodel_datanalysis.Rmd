@@ -1,5 +1,6 @@
 ---
 title: "Climate model_demo"
+author: Pat Byrne, Evan Heberlein, Ruben Sanchez Ramirez
 output: html_document
 ---
 
@@ -15,6 +16,7 @@ library(chron)
 library(ncdf4)
 library(RColorBrewer)
 library(lattice)
+library(patchwork)
 ```
 
 ## Reading in the data
@@ -189,7 +191,7 @@ for (i in 1:74) {
   }
 }
 
-as_tibble(wine_array)
+# Calculate averages for each year (across all lats/longs)
 
 wine_avg <- c()
 table_avg <- c()
@@ -199,6 +201,8 @@ for (i in 1:74) {
   table_avg[i] = mean(table_array[,,i], na.rm = TRUE)
 }
 
+
+# Scaling relative to min (for negative vals)/max (for positive vals)
 wine_scaled <- c()
 table_scaled <- c()
 
@@ -207,6 +211,35 @@ for (i in 1:74) {
   table_scaled[i] = table_avg[i]/max(table_avg)
 }
 
+
+# Convert to data frame to line up with years
+wine_df <- as_data_frame(wine_scaled) %>% 
+  add_column(year = 2007:2080)
+
+table_df <- as_data_frame(table_scaled) %>% 
+  add_column(year = 2007:2080)
 ```
 
+# Create figures
+```{r}
+wine_graph <- ggplot(data = wine_df) + 
+  geom_line(aes(x = year, y = value)) +
+  ggtitle("Scaled yield anomaly for wine grapes in Northern California: 2007-2080",
+          subtitle = "Scaling relative to minimum yield anomaly of -21659.58 tons/acre") +
+  labs(x = "Year",
+       y = "|Scaled yield anomaly|") +
+  theme_minimal() +
+  scale_y_continuous(expand = (c(0,0)))
+
+table_graph <- ggplot(data = table_df) + 
+  geom_line(aes(x = year, y = value)) +
+  ggtitle("Scaled yield anomaly for table grapes in Northern California: 2007-2080",
+          subtitle = "Scaling relative to maximum yield anomaly of 4376.45 tons/acre") +
+  labs(x = "Year",
+       y = "Scaled yield anomaly") +
+  theme_minimal() +
+  scale_y_continuous(expand = (c(0,0)))
+
+(wine_graph / table_graph)
+```
 
