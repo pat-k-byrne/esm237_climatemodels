@@ -1,5 +1,5 @@
 ---
-title: "Climate model_demo"
+title: "HW3 Climate model work"
 author: Pat Byrne, Evan Heberlein, Ruben Sanchez Ramirez
 output: html_document
 ---
@@ -86,6 +86,11 @@ monavg_meanrain_ens2 <- create_nc_ensemble_dataarray(nc_string_in = filename2,
 monavg_meanrain_ens3 <- create_nc_ensemble_dataarray(nc_string_in = filename3, 
                                                       var_name = dname) 
 ```
+
+```{r}
+# print(nc_open("climdata/b.e11.BRCP85C5CNBDRD.f09_g16.005.clm2.h0.RAIN.200601-208012.nc"))
+```
+
 
 ## Manipulating data for workability
 ```{r}
@@ -207,8 +212,8 @@ wine_scaled <- c()
 table_scaled <- c()
 
 for (i in 1:74) {
-  wine_scaled[i] = wine_avg[i]/min(wine_avg)
-  table_scaled[i] = table_avg[i]/max(table_avg)
+  wine_scaled[i] = wine_avg[i]/7
+  table_scaled[i] = table_avg[i]/12
 }
 
 
@@ -220,26 +225,107 @@ table_df <- as_data_frame(table_scaled) %>%
   add_column(year = 2007:2080)
 ```
 
+```{r}
+apr_minT_TS <- c() 
+jul_minT_TS <- c()
+jan_prcp_TS <- c()
+jun_prcp_TS <- c()
+prevsep_prcp_TS <- c() 
+prevoct_prcp_TS <- c()
+  
+for (i in 1:74) {
+  apr_minT_TS[i] <- mean(apr_minT[,,i],na.rm = T) 
+  jul_minT_TS[i] <- mean(jul_minT[,,i],na.rm = T) 
+  jan_prcp_TS[i] <- mean(jan_prcp[,,i],na.rm = T) 
+  jun_prcp_TS[i] <- mean(jun_prcp[,,i],na.rm = T) 
+  prevsep_prcp_TS[i] <- mean(prevsep_prcp[,,i],na.rm = T) 
+  prevoct_prcp_TS[i] <- mean(prevoct_prcp[,,i],na.rm = T) 
+}
+
+apr_minT_TS <- as_data_frame(apr_minT_TS) %>% 
+  add_column(year = 2007:2080) %>% 
+  mutate(
+    wine_response = 2.65*value - 0.17*(value^2),
+    table_response = 2.61*value - 0.15*value^2
+  )
+jul_minT_TS <- as_data_frame(jul_minT_TS) %>% 
+  add_column(year = 2007:2080) %>% 
+  mutate(
+    table_response = 6.93*value - 0.19*value^2
+  )
+jan_prcp_TS <- as_data_frame(jan_prcp_TS) %>% 
+  add_column(year = 2007:2080) %>% 
+  mutate(
+    table_response = 0.035*value + 0.024*value^2
+  )
+jun_prcp_TS <- as_data_frame(jun_prcp_TS) %>% 
+  add_column(year = 2007:2080) %>% 
+  mutate(
+    wine_response = 4.78*value - 4.93*(value^2)
+  )
+prevsep_prcp_TS <- as_data_frame(prevsep_prcp_TS) %>% 
+  add_column(year = 2007:2080) %>% 
+  mutate(
+    wine_response = -2.24*value + 1.54*(value^2)
+  )
+prevoct_prcp_TS <- as_data_frame(prevoct_prcp_TS) %>% 
+  add_column(year = 2007:2080) %>% 
+  mutate(
+    table_response = 1.71*value - 0.673*value
+  )
+
+```
+
+```{r}
+ggplot(data = apr_minT_TS) + 
+  geom_line(aes(x = year, y = value), color = 'blue') +
+  geom_line(aes(x = year, y = table_response), color = 'purple') + 
+  geom_line(aes(x = year, y = wine_response), color = 'red')
+
+ggplot(data = jul_minT_TS) +
+  geom_line(aes(x = year, y = value), color = 'blue') + 
+  geom_line(aes(x = year, y = table_response), color = 'purple')
+
+ggplot(data = jun_prcp_TS) +
+  geom_line(aes(x = year, y = value), color = 'blue') + 
+  geom_line(aes(x = year, y = wine_response), color = 'red') +
+  labs()
+
+ggplot(data = prevsep_prcp_TS) +
+  geom_line(aes(x = year, y = value), color = 'blue') + 
+  geom_line(aes(x = year, y = wine_response), color = 'red')
+
+ggplot(data = jan_prcp_TS) +
+  geom_line(aes(x = year, y = value), color = 'blue') + 
+  geom_line(aes(x = year, y = table_response), color = 'purple')
+
+ggplot(data = prevoct_prcp_TS) +
+  geom_line(aes(x = year, y = value), color = 'blue') + 
+  geom_line(aes(x = year, y = table_response), color = 'purple')
+```
+
+
 # Create figures
 ```{r}
 wine_graph <- ggplot(data = wine_df) + 
   geom_line(aes(x = year, y = value)) +
   ggtitle("Scaled yield anomaly for wine grapes in Northern California: 2007-2080",
-          subtitle = "Scaling relative to minimum yield anomaly of -21659.58 tons/acre") +
+          subtitle = "Scaling relative to historic crop yield of 7 tons/acre") +
   labs(x = "Year",
-       y = "|Scaled yield anomaly|") +
+       y = "Scaled yield anomaly") +
   theme_minimal() +
   scale_y_continuous(expand = (c(0,0)))
 
 table_graph <- ggplot(data = table_df) + 
   geom_line(aes(x = year, y = value)) +
   ggtitle("Scaled yield anomaly for table grapes in Northern California: 2007-2080",
-          subtitle = "Scaling relative to maximum yield anomaly of 4376.45 tons/acre") +
+          subtitle = "Scaling relative to historic crop yield of 12 tons/acre") +
   labs(x = "Year",
        y = "Scaled yield anomaly") +
   theme_minimal() +
   scale_y_continuous(expand = (c(0,0)))
 
 (wine_graph / table_graph)
+ggsave('resultsgraph.png',width=7,height=4)
 ```
 
